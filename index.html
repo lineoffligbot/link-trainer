@@ -1098,6 +1098,24 @@
         } catch (e) {}
       }
 
+      // Pause between the spoken answer and the next card
+      const ADVANCE_PAUSE_MS = 1000;
+
+      // Resolves once Dutch TTS has gone quiet (capped at maxMs), then waits pauseMs,
+      // so auto-advance never starts the next card while the answer is still playing
+      function afterSpeech(pauseMs, maxMs = 10000) {
+        return new Promise(resolve => {
+          const synth = window.speechSynthesis;
+          const start = Date.now();
+          const check = () => {
+            const busy = synth && (synth.speaking || synth.pending);
+            if (busy && Date.now() - start < maxMs) return setTimeout(check, 150);
+            setTimeout(resolve, pauseMs);
+          };
+          setTimeout(check, 300);
+        });
+      }
+
       // Build filtered pools
       function getFilteredData() {
         const words = [];
@@ -1575,11 +1593,12 @@
         }
 
         if (isCorrect) {
-          setTimeout(() => {
-            if (answered && (currentMode === 'words' || currentMode === 'routines')) {
+          const answeredCard = currentCard;
+          afterSpeech(ADVANCE_PAUSE_MS).then(() => {
+            if (answered && currentCard === answeredCard && (currentMode === 'words' || currentMode === 'routines')) {
               nextCard();
             }
-          }, 800);
+          });
         } else {
           const fb = document.getElementById('feedback-bar');
           if (fb) {
