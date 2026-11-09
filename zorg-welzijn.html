@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zorg & Welzijn flashcards</title>
+<style>
+  :root {
+    --bg: #f6f1e7; --card: #fffdf8; --ink: #1f2a24; --muted: #6b7a70;
+    --accent: #1f5c46; --accent-soft: #e3efe8; --line: #e2dccf;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 20px 16px 32px;
+  }
+  h1 { font-size: 1.15rem; margin: 0 0 4px; letter-spacing: .01em; }
+  .sub { color: var(--muted); font-size: .85rem; margin-bottom: 16px; text-align: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 16px; max-width: 640px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    padding: 6px 12px; border-radius: 999px; font-size: .85rem; cursor: pointer;
+  }
+  .chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .scene { width: min(640px, 100%); height: 300px; perspective: 1200px; cursor: pointer; }
+  .card { position: relative; width: 100%; height: 100%; transition: transform .45s; transform-style: preserve-3d; }
+  .card.flipped { transform: rotateY(180deg); }
+  .face {
+    position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(31, 42, 36, .08);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; text-align: center;
+  }
+  .back { transform: rotateY(180deg); }
+  .tag {
+    position: absolute; top: 14px; left: 16px; font-size: .72rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 6px;
+  }
+  .nl { font-size: clamp(1.6rem, 5vw, 2.4rem); font-weight: 650; line-height: 1.2; }
+  .full { color: var(--muted); font-size: .95rem; margin-top: 6px; }
+  .say { margin-top: 14px; font-size: 1.05rem; color: var(--accent); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .en { font-size: clamp(1.3rem, 4vw, 1.8rem); font-weight: 600; line-height: 1.3; }
+  .note { color: var(--muted); font-size: .95rem; margin-top: 10px; max-width: 480px; }
+  .hint { position: absolute; bottom: 12px; font-size: .75rem; color: var(--muted); }
+  .speak {
+    position: absolute; top: 10px; right: 12px; border: none; background: var(--accent-soft); color: var(--accent);
+    width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem; cursor: pointer;
+  }
+  .controls { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
+  button.btn {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    padding: 10px 16px; border-radius: 10px; font-size: .95rem; cursor: pointer;
+  }
+  button.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .meta { margin-top: 12px; color: var(--muted); font-size: .85rem; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .meta label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .legend { margin-top: 22px; max-width: 640px; color: var(--muted); font-size: .8rem; line-height: 1.6; text-align: center; }
+  .legend b { color: var(--ink); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .warn { color: #9a3b2e; font-size: .8rem; margin-top: 8px; display: none; }
+
+  #app { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .nojs #app { display: none; }
+  body:not(.nojs) #static { display: none; }
+  #static { width: min(640px, 100%); }
+  #static h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin: 22px 0 8px; }
+  #static details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+  #static summary { cursor: pointer; font-size: 1.1rem; list-style: none; }
+  #static summary::-webkit-details-marker { display: none; }
+  .ssay { display: block; color: var(--accent); font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .9rem; margin-top: 4px; }
+  .sfull, .snote { color: var(--muted); font-size: .85rem; }
+  .sen { margin-top: 8px; font-size: 1rem; font-weight: 600; }
+  .sen .snote { display: block; font-weight: 400; margin-top: 2px; }
+</style>
+</head>
+<body class="nojs">
+  <h1>Zorg &amp; Welzijn</h1>
+  <div class="sub">Leerblad 16+ klas · tap the card to flip · 🔊 to hear the Dutch</div>
+
+  <div id="app">
+  <div class="chips" id="chips"></div>
+
+  <div class="scene" id="scene">
+    <div class="card" id="card">
+      <div class="face front">
+        <span class="tag" id="tagF"></span>
+        <button class="speak" id="speakBtn" title="Hear it (S)">🔊</button>
+        <div class="nl" id="nl"></div>
+        <div class="full" id="full"></div>
+        <div class="say" id="say"></div>
+        <div class="hint">tap to see the English</div>
+      </div>
+      <div class="face back">
+        <span class="tag" id="tagB"></span>
+        <div class="en" id="en"></div>
+        <div class="note" id="note"></div>
+        <div class="hint">tap to flip back</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="prev">← Vorige</button>
+    <button class="btn primary" id="flip">Flip</button>
+    <button class="btn" id="next">Volgende →</button>
+    <button class="btn" id="shuffle">Shuffle</button>
+  </div>
+  <div class="meta">
+    <span id="count"></span>
+    <label><input type="checkbox" id="auto" checked> Speak each new card</label>
+    <label><input type="checkbox" id="enFirst"> English first</label>
+  </div>
+  <div class="warn" id="warn">No Dutch voice found. iPhone: Settings → Accessibility → Spoken Content → Voices → Dutch (e.g. Xander). Mac: System Settings → Accessibility → Spoken Content → System Voice → Manage Voices → Dutch.</div>
+
+  </div>
+<div id="static">
+<p class="sub">Tap a word to see the English. (Open this page in Safari for the flip cards and the Dutch voice.)</p>
+<h2>Kernwoorden</h2>
+<details><summary><b>zorg</b> <span class="ssay">[ ZORKH ]</span></summary><div class="sen">care <span class="snote">Looking after health.</span></div></details>
+<details><summary><b>welzijn</b> <span class="ssay">[ VEL-zine ]</span></summary><div class="sen">well-being <span class="snote">Feeling good.</span></div></details>
+<details><summary><b>gezondheid</b> <span class="ssay">[ khuh-ZONT-hite ]</span></summary><div class="sen">health <span class="snote">Physical, mental and social well-being together.</span></div></details>
+<details><summary><b>lichamelijk</b> <span class="ssay">[ lee-KHAH-muh-luk ]</span></summary><div class="sen">physical <span class="snote">To do with your body.</span></div></details>
+<details><summary><b>geestelijk</b> <span class="ssay">[ KHAY-stuh-luk ]</span></summary><div class="sen">mental <span class="snote">What you think and feel.</span></div></details>
+<details><summary><b>sociaal</b> <span class="ssay">[ so-SHAHL ]</span></summary><div class="sen">social <span class="snote">Feeling good with other people.</span></div></details>
+<details><summary><b>werkzaam</b> <span class="ssay">[ VERK-zahm ]</span></summary><div class="sen">working, employed <span class="snote">1.7 million people work in Zorg &amp; Welzijn.</span></div></details>
+<details><summary><b>de beroepsbevolking</b> <span class="ssay">[ buh-ROOPS-buh-vol-king ]</span></summary><div class="sen">the working population <span class="snote">Everyone who has a job. About 17% work in Zorg &amp; Welzijn.</span></div></details>
+<details><summary><b>de eerstelijns gezondheidszorg</b> <span class="ssay">[ AYR-stuh-lines khuh-ZONT-hites-zorkh ]</span></summary><div class="sen">primary care <span class="snote">You can go there yourself: huisarts, tandarts, apotheek.</span></div></details>
+<details><summary><b>de tandarts</b> <span class="ssay">[ TAHNT-arts ]</span></summary><div class="sen">the dentist</div></details>
+<details><summary><b>de apotheek</b> <span class="ssay">[ ah-po-TAYK ]</span></summary><div class="sen">the pharmacy</div></details>
+<details><summary><b>de tweedelijns gezondheidszorg</b> <span class="ssay">[ TVAY-duh-lines khuh-ZONT-hites-zorkh ]</span></summary><div class="sen">secondary (specialist) care <span class="snote">Specialist care in the hospital.</span></div></details>
+<details><summary><b>het ziekenhuis</b> <span class="ssay">[ ZEE-kun-hows ]</span></summary><div class="sen">the hospital</div></details>
+<details><summary><b>de doorverwijzing</b> <span class="ssay">[ DOHR-ver-vay-zing ]</span></summary><div class="sen">the referral <span class="snote">You need one from the huisarts to go to the hospital.</span></div></details>
+<details><summary><b>de patiënt</b> <span class="ssay">[ pah-SHENT ]</span></summary><div class="sen">the patient</div></details>
+<details><summary><b>de GGZ</b> <span class="sfull">(geestelijke gezondheidszorg)</span> <span class="ssay">[ khay-khay-ZET ]</span></summary><div class="sen">mental health care</div></details>
+<details><summary><b>de GGD</b> <span class="sfull">(gemeentelijke gezondheidsdienst)</span> <span class="ssay">[ khay-khay-DAY ]</span></summary><div class="sen">the city&#x27;s public health service <span class="snote">Vaccinations, health checks.</span></div></details>
+<details><summary><b>de eigenschappen</b> <span class="ssay">[ EYE-khun-skhah-pun ]</span></summary><div class="sen">qualities, traits</div></details>
+<h2>School</h2>
+<details><summary><b>het vmbo</b> <span class="sfull">(voorbereidend middelbaar beroepsonderwijs)</span> <span class="ssay">[ vay-em-bay-OH ]</span></summary><div class="sen">pre-vocational secondary school</div></details>
+<details><summary><b>het mbo</b> <span class="sfull">(middelbaar beroepsonderwijs)</span> <span class="ssay">[ em-bay-OH ]</span></summary><div class="sen">vocational school <span class="snote">E.g. mbo niveau 2, Medewerker hospitality.</span></div></details>
+<details><summary><b>het hbo</b> <span class="sfull">(hoger beroepsonderwijs)</span> <span class="ssay">[ hah-bay-OH ]</span></summary><div class="sen">university of applied sciences</div></details>
+<details><summary><b>het wo</b> <span class="sfull">(wetenschappelijk onderwijs)</span> <span class="ssay">[ vay-OH ]</span></summary><div class="sen">university</div></details>
+<details><summary><b>het ROC</b> <span class="sfull">(regionaal opleidingscentrum)</span> <span class="ssay">[ er-oh-SAY ]</span></summary><div class="sen">regional training centre <span class="snote">Where mbo courses are taught, e.g. ROC van Amsterdam.</span></div></details>
+<details><summary><b>de horeca</b> <span class="sfull">(hotel, restaurant, café)</span> <span class="ssay">[ HOH-ruh-kah ]</span></summary><div class="sen">hospitality: hotels, restaurants, cafés</div></details>
+<h2>Beroepen: welzijn</h2>
+<details><summary><b>de kapper</b> <span class="ssay">[ KAH-per ]</span></summary><div class="sen">the hairdresser</div></details>
+<details><summary><b>de woonbegeleider</b> <span class="ssay">[ VOHN-buh-khuh-lie-der ]</span></summary><div class="sen">the residential support worker <span class="snote">Helps people where they live.</span></div></details>
+<details><summary><b>de politie</b> <span class="ssay">[ po-LEET-see ]</span></summary><div class="sen">the police</div></details>
+<details><summary><b>de pedicure</b> <span class="ssay">[ pay-dee-KEW-ruh ]</span></summary><div class="sen">the foot care specialist</div></details>
+<details><summary><b>de pedagogisch medewerker</b> <span class="ssay">[ pay-dah-KHOH-khees MAY-duh-ver-ker ]</span></summary><div class="sen">the childcare worker <span class="snote">E.g. at a daycare.</span></div></details>
+<details><summary><b>de sportinstructeur</b> <span class="ssay">[ SPORT-in-struk-tur ]</span></summary><div class="sen">the sports instructor</div></details>
+<details><summary><b>de kok</b> <span class="ssay">[ KOK ]</span></summary><div class="sen">the cook <span class="snote">The leerblad puts it under welzijn.</span></div></details>
+<details><summary><b>de onderwijsassistent</b> <span class="ssay">[ ON-der-vice-ah-see-STENT ]</span></summary><div class="sen">the teaching assistant</div></details>
+<h2>Beroepen: zorg</h2>
+<details><summary><b>de zorgtechnicus</b> <span class="ssay">[ ZORKH-tekh-nee-kus ]</span></summary><div class="sen">the healthcare technician <span class="snote">Looks after medical equipment.</span></div></details>
+<details><summary><b>de verpleegkundige</b> <span class="ssay">[ ver-PLAYKH-kun-duh-khuh ]</span></summary><div class="sen">the nurse</div></details>
+<details><summary><b>de doktersassistent</b> <span class="ssay">[ DOK-ters-ah-see-STENT ]</span></summary><div class="sen">the doctor&#x27;s assistant</div></details>
+<details><summary><b>de fysiotherapeut</b> <span class="ssay">[ FEE-see-oh-tay-rah-PURT ]</span></summary><div class="sen">the physiotherapist</div></details>
+<details><summary><b>de kraamverzorgende</b> <span class="ssay">[ KRAHM-ver-zor-khun-duh ]</span></summary><div class="sen">the maternity carer <span class="snote">Helps mother and baby at home after the birth.</span></div></details>
+<details><summary><b>de verloskundige</b> <span class="ssay">[ ver-LOS-kun-duh-khuh ]</span></summary><div class="sen">the midwife</div></details>
+<details><summary><b>de huisarts</b> <span class="ssay">[ HOWS-arts ]</span></summary><div class="sen">the GP, family doctor <span class="snote">Eerstelijns: you can go yourself.</span></div></details>
+<details><summary><b>de apothekersassistent</b> <span class="ssay">[ ah-po-TAY-kers-ah-see-STENT ]</span></summary><div class="sen">the pharmacy assistant</div></details>
+<details><summary><b>de verzorgende IG</b> <span class="sfull">(individuele gezondheidszorg)</span> <span class="ssay">[ ver-ZOR-khun-duh ee-KHAY ]</span></summary><div class="sen">the care worker <span class="snote">IG = individual health care.</span></div></details>
+<h2>Eigenschappen</h2>
+<details><summary><b>interesse in mensen hebben</b> <span class="ssay">[ in-tuh-RES-suh in MEN-sun HEB-bun ]</span></summary><div class="sen">being interested in people</div></details>
+<details><summary><b>samenwerken</b> <span class="ssay">[ SAH-mun-ver-kun ]</span></summary><div class="sen">working together</div></details>
+<details><summary><b>communiceren</b> <span class="ssay">[ ko-mew-nee-SAY-run ]</span></summary><div class="sen">communicating</div></details>
+<details><summary><b>nieuwsgierig zijn</b> <span class="ssay">[ neeoos-KHEE-rukh zine ]</span></summary><div class="sen">being curious</div></details>
+<details><summary><b>geduld hebben</b> <span class="ssay">[ khuh-DULT HEB-bun ]</span></summary><div class="sen">being patient</div></details>
+<details><summary><b>doorzettingsvermogen hebben</b> <span class="ssay">[ DOHR-zet-ings-ver-moh-khun HEB-bun ]</span></summary><div class="sen">perseverance <span class="snote">You don&#x27;t give up easily.</span></div></details>
+<details><summary><b>goed luisteren</b> <span class="ssay">[ khoot LOWS-tuh-run ]</span></summary><div class="sen">listening well</div></details>
+<details><summary><b>problemen kunnen oplossen</b> <span class="ssay">[ pro-BLAY-mun KUN-nun OP-los-sun ]</span></summary><div class="sen">being able to solve problems</div></details>
+<details><summary><b>motiveren</b> <span class="ssay">[ mo-tee-VAY-run ]</span></summary><div class="sen">motivating others</div></details>
+<details><summary><b>netjes werken</b> <span class="ssay">[ NET-yus VER-kun ]</span></summary><div class="sen">working neatly</div></details>
+<details><summary><b>stressbestendig zijn</b> <span class="ssay">[ STRES-buh-sten-dukh zine ]</span></summary><div class="sen">staying calm under stress</div></details>
+<details><summary><b>onregelmatig willen werken</b> <span class="ssay">[ on-ray-khul-MAH-tukh VIL-lun VER-kun ]</span></summary><div class="sen">being willing to work irregular hours <span class="snote">Evenings, weekends, nights.</span></div></details>
+<details><summary><b>flink kunnen doorwerken</b> <span class="ssay">[ FLINK KUN-nun DOHR-ver-kun ]</span></summary><div class="sen">being able to keep working hard</div></details>
+<details><summary><b>flexibel zijn</b> <span class="ssay">[ flek-SEE-bul zine ]</span></summary><div class="sen">being flexible</div></details>
+</div>
+  <div class="legend">
+    How to read the sound guide: <b>kh</b> = throaty g/ch, like Scottish "loch" ·
+    <b>ow</b> = Dutch ui/ou · <b>eye</b>/<b>ine</b> = ij/ei ·
+    <b>v</b> at the start = Dutch w (softer than English v) · CAPITALS = stress.<br>
+    Keys: Space flip · ← → previous/next · S speak.
+  </div>
+
+<script>
+document.body.classList.remove('nojs');
+const CARDS = [
+  // Key words
+  ["Kernwoorden", "zorg", "", "ZORKH", "care", "Looking after health."],
+  ["Kernwoorden", "welzijn", "", "VEL-zine", "well-being", "Feeling good."],
+  ["Kernwoorden", "gezondheid", "", "khuh-ZONT-hite", "health", "Physical, mental and social well-being together."],
+  ["Kernwoorden", "lichamelijk", "", "lee-KHAH-muh-luk", "physical", "To do with your body."],
+  ["Kernwoorden", "geestelijk", "", "KHAY-stuh-luk", "mental", "What you think and feel."],
+  ["Kernwoorden", "sociaal", "", "so-SHAHL", "social", "Feeling good with other people."],
+  ["Kernwoorden", "werkzaam", "", "VERK-zahm", "working, employed", "1.7 million people work in Zorg & Welzijn."],
+  ["Kernwoorden", "de beroepsbevolking", "", "buh-ROOPS-buh-vol-king", "the working population", "Everyone who has a job. About 17% work in Zorg & Welzijn."],
+  ["Kernwoorden", "de eerstelijns gezondheidszorg", "", "AYR-stuh-lines khuh-ZONT-hites-zorkh", "primary care", "You can go there yourself: huisarts, tandarts, apotheek."],
+  ["Kernwoorden", "de tandarts", "", "TAHNT-arts", "the dentist", ""],
+  ["Kernwoorden", "de apotheek", "", "ah-po-TAYK", "the pharmacy", ""],
+  ["Kernwoorden", "de tweedelijns gezondheidszorg", "", "TVAY-duh-lines khuh-ZONT-hites-zorkh", "secondary (specialist) care", "Specialist care in the hospital."],
+  ["Kernwoorden", "het ziekenhuis", "", "ZEE-kun-hows", "the hospital", ""],
+  ["Kernwoorden", "de doorverwijzing", "", "DOHR-ver-vay-zing", "the referral", "You need one from the huisarts to go to the hospital."],
+  ["Kernwoorden", "de patiënt", "", "pah-SHENT", "the patient", ""],
+  ["Kernwoorden", "de GGZ", "geestelijke gezondheidszorg", "khay-khay-ZET", "mental health care", ""],
+  ["Kernwoorden", "de GGD", "gemeentelijke gezondheidsdienst", "khay-khay-DAY", "the city's public health service", "Vaccinations, health checks."],
+  ["Kernwoorden", "de eigenschappen", "", "EYE-khun-skhah-pun", "qualities, traits", ""],
+
+  // School
+  ["School", "het vmbo", "voorbereidend middelbaar beroepsonderwijs", "vay-em-bay-OH", "pre-vocational secondary school", ""],
+  ["School", "het mbo", "middelbaar beroepsonderwijs", "em-bay-OH", "vocational school", "E.g. mbo niveau 2, Medewerker hospitality."],
+  ["School", "het hbo", "hoger beroepsonderwijs", "hah-bay-OH", "university of applied sciences", ""],
+  ["School", "het wo", "wetenschappelijk onderwijs", "vay-OH", "university", ""],
+  ["School", "het ROC", "regionaal opleidingscentrum", "er-oh-SAY", "regional training centre", "Where mbo courses are taught, e.g. ROC van Amsterdam."],
+  ["School", "de horeca", "hotel, restaurant, café", "HOH-ruh-kah", "hospitality: hotels, restaurants, cafés", ""],
+
+  // Jobs: welzijn
+  ["Beroepen: welzijn", "de kapper", "", "KAH-per", "the hairdresser", ""],
+  ["Beroepen: welzijn", "de woonbegeleider", "", "VOHN-buh-khuh-lie-der", "the residential support worker", "Helps people where they live."],
+  ["Beroepen: welzijn", "de politie", "", "po-LEET-see", "the police", ""],
+  ["Beroepen: welzijn", "de pedicure", "", "pay-dee-KEW-ruh", "the foot care specialist", ""],
+  ["Beroepen: welzijn", "de pedagogisch medewerker", "", "pay-dah-KHOH-khees MAY-duh-ver-ker", "the childcare worker", "E.g. at a daycare."],
+  ["Beroepen: welzijn", "de sportinstructeur", "", "SPORT-in-struk-tur", "the sports instructor", ""],
+  ["Beroepen: welzijn", "de kok", "", "KOK", "the cook", "The leerblad puts it under welzijn."],
+  ["Beroepen: welzijn", "de onderwijsassistent", "", "ON-der-vice-ah-see-STENT", "the teaching assistant", ""],
+
+  // Jobs: zorg
+  ["Beroepen: zorg", "de zorgtechnicus", "", "ZORKH-tekh-nee-kus", "the healthcare technician", "Looks after medical equipment."],
+  ["Beroepen: zorg", "de verpleegkundige", "", "ver-PLAYKH-kun-duh-khuh", "the nurse", ""],
+  ["Beroepen: zorg", "de doktersassistent", "", "DOK-ters-ah-see-STENT", "the doctor's assistant", ""],
+  ["Beroepen: zorg", "de fysiotherapeut", "", "FEE-see-oh-tay-rah-PURT", "the physiotherapist", ""],
+  ["Beroepen: zorg", "de kraamverzorgende", "", "KRAHM-ver-zor-khun-duh", "the maternity carer", "Helps mother and baby at home after the birth."],
+  ["Beroepen: zorg", "de verloskundige", "", "ver-LOS-kun-duh-khuh", "the midwife", ""],
+  ["Beroepen: zorg", "de huisarts", "", "HOWS-arts", "the GP, family doctor", "Eerstelijns: you can go yourself."],
+  ["Beroepen: zorg", "de apothekersassistent", "", "ah-po-TAY-kers-ah-see-STENT", "the pharmacy assistant", ""],
+  ["Beroepen: zorg", "de verzorgende IG", "individuele gezondheidszorg", "ver-ZOR-khun-duh ee-KHAY", "the care worker", "IG = individual health care."],
+
+  // Qualities
+  ["Eigenschappen", "interesse in mensen hebben", "", "in-tuh-RES-suh in MEN-sun HEB-bun", "being interested in people", ""],
+  ["Eigenschappen", "samenwerken", "", "SAH-mun-ver-kun", "working together", ""],
+  ["Eigenschappen", "communiceren", "", "ko-mew-nee-SAY-run", "communicating", ""],
+  ["Eigenschappen", "nieuwsgierig zijn", "", "neeoos-KHEE-rukh zine", "being curious", ""],
+  ["Eigenschappen", "geduld hebben", "", "khuh-DULT HEB-bun", "being patient", ""],
+  ["Eigenschappen", "doorzettingsvermogen hebben", "", "DOHR-zet-ings-ver-moh-khun HEB-bun", "perseverance", "You don't give up easily."],
+  ["Eigenschappen", "goed luisteren", "", "khoot LOWS-tuh-run", "listening well", ""],
+  ["Eigenschappen", "problemen kunnen oplossen", "", "pro-BLAY-mun KUN-nun OP-los-sun", "being able to solve problems", ""],
+  ["Eigenschappen", "motiveren", "", "mo-tee-VAY-run", "motivating others", ""],
+  ["Eigenschappen", "netjes werken", "", "NET-yus VER-kun", "working neatly", ""],
+  ["Eigenschappen", "stressbestendig zijn", "", "STRES-buh-sten-dukh zine", "staying calm under stress", ""],
+  ["Eigenschappen", "onregelmatig willen werken", "", "on-ray-khul-MAH-tukh VIL-lun VER-kun", "being willing to work irregular hours", "Evenings, weekends, nights."],
+  ["Eigenschappen", "flink kunnen doorwerken", "", "FLINK KUN-nun DOHR-ver-kun", "being able to keep working hard", ""],
+  ["Eigenschappen", "flexibel zijn", "", "flek-SEE-bul zine", "being flexible", ""],
+].map(([cat, nl, full, say, en, note]) => ({ cat, nl, full, say, en, note }));
+
+const CATS = ["Alles", "Kernwoorden", "School", "Beroepen: welzijn", "Beroepen: zorg", "Eigenschappen"];
+let cat = "Alles", deck = [], i = 0, flipped = false;
+const $ = id => document.getElementById(id);
+
+let dutchVoice = null;
+function pickVoice() {
+  const vs = speechSynthesis.getVoices();
+  dutchVoice = vs.find(v => /^nl[-_]NL/i.test(v.lang) && /xander|ellen|claire|google/i.test(v.name))
+            || vs.find(v => /^nl[-_]NL/i.test(v.lang)) || vs.find(v => /^nl/i.test(v.lang)) || null;
+  $("warn").style.display = vs.length && !dutchVoice ? "block" : "none";
+}
+if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "nl-NL"; u.rate = 0.85;
+  if (dutchVoice) u.voice = dutchVoice;
+  speechSynthesis.speak(u);
+}
+
+function build() {
+  deck = CARDS.filter(c => cat === "Alles" || c.cat === cat);
+  i = 0; render(true);
+}
+function render(isNew) {
+  const c = deck[i];
+  flipped = $("enFirst").checked;
+  $("card").classList.toggle("flipped", flipped);
+  $("tagF").textContent = $("tagB").textContent = c.cat;
+  $("nl").textContent = c.nl;
+  $("full").textContent = c.full;
+  $("say").textContent = "[ " + c.say + " ]";
+  $("en").textContent = c.en;
+  $("note").textContent = c.note;
+  $("count").textContent = (i + 1) + " / " + deck.length;
+  if (isNew && $("auto").checked && !flipped) speak(c.nl);
+}
+function flip() {
+  flipped = !flipped;
+  $("card").classList.toggle("flipped", flipped);
+  if (!flipped && $("auto").checked) speak(deck[i].nl);
+}
+function go(d) { i = (i + d + deck.length) % deck.length; render(true); }
+function shuffle() {
+  for (let k = deck.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [deck[k], deck[j]] = [deck[j], deck[k]]; }
+  i = 0; render(true);
+}
+
+CATS.forEach(name => {
+  const b = document.createElement("button");
+  b.className = "chip" + (name === cat ? " on" : "");
+  const n = name === "Alles" ? CARDS.length : CARDS.filter(c => c.cat === name).length;
+  b.textContent = name + " · " + n;
+  b.onclick = () => { cat = name; document.querySelectorAll(".chip").forEach(x => x.classList.remove("on")); b.classList.add("on"); build(); };
+  $("chips").appendChild(b);
+});
+
+$("scene").onclick = e => { if (e.target.id !== "speakBtn") flip(); };
+$("speakBtn").onclick = e => { e.stopPropagation(); speak(deck[i].nl); };
+$("flip").onclick = flip;
+$("next").onclick = () => go(1);
+$("prev").onclick = () => go(-1);
+$("shuffle").onclick = shuffle;
+$("enFirst").onchange = () => render(false);
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === " ") { e.preventDefault(); flip(); }
+  else if (e.key === "ArrowRight") go(1);
+  else if (e.key === "ArrowLeft") go(-1);
+  else if (e.key.toLowerCase() === "s") speak(deck[i].nl);
+});
+
+build();
+</script>
+</body>
+</html>
